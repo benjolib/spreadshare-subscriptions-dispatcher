@@ -1,0 +1,10 @@
+name: Publications
+type: object
+key: id
+data:
+  count: 100
+properties:
+  id:
+    type: string
+    data:
+      build: faker.random.uuid()

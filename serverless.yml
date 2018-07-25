@@ -1,0 +1,142 @@
+frameworkVersion: ">=1.28.0"
+
+# NOTE: update this with your service name
+service: subscriptions-dispatcher
+
+# Use the serverless-webpack plugin to transpile ES6
+plugins:
+  - serverless-webpack
+  - serverless-dynamodb-local
+  - serverless-offline-scheduler
+  - serverless-offline
+
+# serverless-webpack configuration
+# Enable auto-packing of external modules
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+  serverless-offline:
+    babelOptions:
+      presets: ["env", "flow"]
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+    seed:
+      test:
+        sources:
+          - table: subscriptions-dev
+            sources: [./testSeedData/subscriptions.json]
+
+  # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html
+  schedule:
+    dev:
+      daily: rate(1 minutes)
+      weekly: cron(0 9 * * SAT *)
+      monthly: cron(0 9 1 * ? *)  
+    stage:
+      daily: cron(0 9 * * ? *)
+      weekly: cron(0 9 * * SAT *)
+      monthly: cron(0 9 1 * ? *)  
+    prod:
+      daily: cron(0 9 * * ? *)
+      weekly: cron(0 9 * * SAT *)
+      monthly: cron(0 9 1 * ? *)   
+
+provider:
+  name: aws
+  profile: ${opt:profile, 'spreadshare'}
+  runtime: nodejs8.10
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'eu-central-1'}
+  memorySize: 512
+  versionFunctions: false
+  environment: ${file(env.yml):${self:provider.stage}}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TABLE_NAME}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TABLE_NAME}/index/*"
+
+functions:
+  emailDispatcher:
+    handler: src/handlers/emailDispatcher.handler
+    name: ${self:provider.stage}-emailDispatcher
+    description: Dispatch emails to subscribed users for publications.
+    events:
+      - schedule:
+          rate: ${self:custom.schedule.${self:provider.stage}.daily}
+          enabled: true
+          name: dailyEmailNotifications
+          input:
+            type: daily
+      - schedule:
+          rate: ${self:custom.schedule.${self:provider.stage}.weekly}
+          enabled: true
+          name: weeklyEmailNotifications
+          input:
+            type: weekly
+      - schedule:
+          rate: ${self:custom.schedule.${self:provider.stage}.monthly}
+          enabled: true
+          name: monthlyEmailNotifications
+          input:
+            type: monthly
+
+package:
+  individually: true
+
+resources:
+  Conditions:
+    CreateTable:
+      Fn::Equals:
+        - ${opt:stage}
+        - dev
+  Resources:
+    SubscriptionsDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Condition: CreateTable
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ${self:provider.environment.TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: channelId
+            AttributeType: S
+          - AttributeName: publicationId
+            AttributeType: S
+          - AttributeName: channelFrequency
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: channelId
+            KeyType: RANGE
+        GlobalSecondaryIndexes: 
+          - IndexName: channel-frequency-publication-index
+            KeySchema:
+              - AttributeName: channelFrequency
+                KeyType: HASH
+              - AttributeName: publicationId
+                KeyType: RANGE
+            Projection: 
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1

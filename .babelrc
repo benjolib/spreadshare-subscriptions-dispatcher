@@ -1,0 +1,10 @@
+{
+  "presets": [
+    ["env", { "node": "8.10" }],
+    "stage-3"
+  ],
+  "plugins": [
+    "source-map-support", 
+    "transform-runtime", 
+    "transform-flow-strip-types"]
+}

@@ -1,0 +1,47 @@
+name: Subscriptions
+type: object
+key: 
+  post_build: `${this.userId}:${this.channelId}`
+data:
+  count: 5000
+  dependencies:
+    - publications.yml
+    - users.yml
+properties:
+  userId:
+    type: string
+    data:
+      build: faker.random.arrayElement(documents.Users).id;
+  email:
+    description: The users email address
+    data:
+      fake: '{{internet.email}}'
+  publicationId:
+    type: string
+    data:
+      build: faker.random.arrayElement(documents.Publications).id;
+  frequency:
+    type: string
+    data:
+      build: faker.random.arrayElement(["daily", "weekly", "monthly"]);
+  channel:
+    type: string
+    data:
+      build: faker.random.arrayElement(["email", "rss"]);
+  channelId:
+    type: string
+    data:
+      build: `${faker.random.arrayElement(documents.Publications).id}:${this.channel}`;
+  channelFrequency:
+    type: string
+    data:
+      build: `${this.channel}:${this.frequency}`;
+  createdAt:
+    type: integer
+    data:
+      build: new Date(faker.date.recent()).getTime()
+  updatedAt:
+    type: integer
+    data:
+      build: this.createdAt
+  
