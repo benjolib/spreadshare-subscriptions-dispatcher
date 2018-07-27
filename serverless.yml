@@ -34,17 +34,18 @@ custom:
   # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html
   schedule:
     dev:
-      daily: rate(1 minutes)
-      weekly: cron(0 9 * * SAT *)
-      monthly: cron(0 9 1 * ? *)  
+      daily: rate(1 minute)
+      # daily: cron(0/1 * ? * * *)
+      weekly: cron(0 9 ? * SAT *)
+      monthly: cron(0 9 1 * ? *)
     stage:
-      daily: cron(0 9 * * ? *)
-      weekly: cron(0 9 * * SAT *)
-      monthly: cron(0 9 1 * ? *)  
+      daily: cron(0/1 * ? * * *)
+      weekly: cron(0 9 ? * SAT *)
+      monthly: cron(0 9 1 * ? *) 
     prod:
-      daily: cron(0 9 * * ? *)
-      weekly: cron(0 9 * * SAT *)
-      monthly: cron(0 9 1 * ? *)   
+      daily: cron(0 9 ? * * *)
+      weekly: cron(0 9 ? * SAT *)
+      monthly: cron(0 9 1 * ? *)
 
 provider:
   name: aws
@@ -56,15 +57,6 @@ provider:
   versionFunctions: false
   environment: ${file(env.yml):${self:provider.stage}}
   iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TABLE_NAME}"
     - Effect: Allow
       Action:
         - dynamodb:Query
