@@ -3,7 +3,6 @@
 import knex from 'knex';
 import moment from 'moment';
 import R from 'ramda';
-import logger from '../logger';
 import type {
   PublicationDbI,
   PublicationDbOptions,
@@ -35,38 +34,39 @@ export default class PublicationDb implements PublicationDbI {
     timeWindow: Frequency
   ): Promise<Publication> {
     const fromTime = pastTime(timeWindow);
-    return this.knex
-      .select(
-        'tableRows.userId',
-        'tableRows.content',
-        'tableRows.votesCount',
-        'tableRows.commentsCount',
-        'tableRows.image',
-        'tableRows.lineNumber',
-        'tables.title as pubTitle',
-        'tables.tagline as pubTagline',
-        'user.name as userName',
-        'user.image as userImage'
-      )
-      .from('tableRows')
-      .innerJoin('tables', 'tableRows.tableId', 'tables.id')
-      .innerJoin('user', 'tableRows.userId', 'user.id')
-      .where('tableRows.tableId', publicationId)
-      .andWhere('tableRows.createdAt', '>=', fromTime)
-      .then(parseData(context, publicationId, timeWindow));
+    return (
+      this.knex
+        .select(
+          'tableRows.userId',
+          'tableRows.content',
+          'tableRows.votesCount',
+          'tableRows.commentsCount',
+          'tableRows.image',
+          'tableRows.lineNumber',
+          'tables.title as pubTitle',
+          'tables.tagline as pubTagline',
+          'user.name as userName',
+          'user.image as userImage'
+        )
+        .from('tableRows')
+        .innerJoin('tables', 'tableRows.tableId', 'tables.id')
+        .leftJoin('user', 'tableRows.userId', 'user.id')
+        .where('tableRows.tableId', publicationId)
+        // .andWhere('tableRows.createdAt', '>=', fromTime)
+        .andWhere('tableRows.createdAt', '>=', 1532611000)
+        .then(parseData(context, publicationId))
+    );
   }
 }
 
-const parseData = (context, publicationId, timeWindow) => (
-  data
-): ?Publication => {
+const parseData = (context, publicationId) => (data): ?Publication => {
   if (R.isNil(data) || R.isEmpty(data) || !Array.isArray(data)) {
-    logNoUpdate(context, publicationId, timeWindow);
+    logNoUpdate(context, publicationId);
     return null;
   }
 
   const { pubTitle, pubTagline } = data[0];
-  logUpdate(context, publicationId, pubTitle, timeWindow, data.length);
+  logUpdate(context, publicationId, pubTitle, data.length);
   return {
     id: publicationId,
     title: pubTitle,
@@ -89,19 +89,15 @@ const pastTime = (timeWindow: Frequency): number =>
     .subtract(1, timeUnits[timeWindow])
     .unix();
 
-const logNoUpdate = (context, id, timeWindow) =>
-  logger.debug({
-    requestId: context.requestId,
-    frequency: timeWindow,
+const logNoUpdate = (context, id) =>
+  context.logger.debug({
     source: 'publicationDb',
     publicationId: id,
     msg: 'No update found'
   });
 
-const logUpdate = (context, id, pubTitle, timeWindow, length) =>
-  logger.debug({
-    requestId: context.requestId,
-    frequency: timeWindow,
+const logUpdate = (context, id, pubTitle, length) =>
+  context.logger.debug({
     source: 'publicationDb',
     publicationId: id,
     publicationTitle: pubTitle,

@@ -1,45 +1,42 @@
 // @flow
 
-import uuidv4 from 'uuid/v4';
 import to from 'await-to-js';
 import controller from './factory';
-import logger from '../logger';
+import Logger from '../logger';
 import type { Handler } from '../types';
 
-export const handler: Handler = async event => {
+export const handler: Handler = async (event, awsContext) => {
+  const requestId = awsContext.awsRequestId;
   const frequency = event.type;
+  const logger = new Logger(frequency, requestId);
   const context = {
-    requestId: uuidv4()
+    requestId,
+    logger
   };
-  logEntry(context, frequency);
+
+  logEntry(logger);
   const [err, result] = await to(controller.dispatchEmails(context, frequency));
   if (err != null) {
-    logError(context, frequency, err);
+    logError(logger, err);
     return;
   }
-  logExit(context, frequency);
+  logExit(logger);
 };
 
-const logEntry = (context, frequency) =>
+const logEntry = logger =>
   logger.info({
-    requestId: context.requestId,
-    frequency,
     source: 'emailDispatcher',
     msg: 'starting subscription digest email dispatcher job'
   });
 
-const logExit = (context, frequency) =>
+const logExit = logger =>
   logger.info({
-    requestId: context.requestId,
-    frequency,
     source: 'emailDispatcher',
     msg: 'finished subscription digest email dispatcher job'
   });
 
-const logError = (context, frequency, err) =>
+const logError = (logger, err: Error) =>
   logger.error({
-    requestId: context.requestId,
-    frequency,
     source: 'emailDispatcher',
     type: 'error',
     msg: err.message,

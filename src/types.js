@@ -24,8 +24,16 @@ export interface PublicationDbI {
   ): Promise<?Publication>;
 }
 
+export interface LoggerI {
+  debug(any): void;
+  info(any): void;
+  warn(any): void;
+  error(any): void;
+}
+
 export type Context = {
-  requestId: string
+  requestId: string,
+  logger: LoggerI
 };
 
 export type PublicationDigestInfo = {
@@ -82,11 +90,15 @@ export type PublicationDbOptions = {
   database: string
 };
 
-export type Event = {
+type Event = {
   type: Frequency
 };
 
-export type Handler = (event: Event) => Promise<void>;
+type AwsContext = {
+  awsRequestId: string
+};
+
+export type Handler = (event: Event, context: AwsContext) => Promise<void>;
 
 type LambdaParams = {
   FunctionName: string,

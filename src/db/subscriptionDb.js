@@ -14,7 +14,6 @@ import type {
   PublicationSubscriptions,
   Context
 } from '../types';
-import logger from '../logger';
 
 export default class SubscriptionDb implements SubscriptionDbI {
   db: DynamoDb<SubscriptionDbModel>;
@@ -33,11 +32,7 @@ export default class SubscriptionDb implements SubscriptionDbI {
   ): Observable<PublicationSubscriptions> {
     return Observable.create(observer => {
       const params = queryParams(this.tableName, channel, frequency);
-      const contextD = {
-        context,
-        frequency
-      };
-      const callback = callbackFactory(contextD, this.db, observer, params);
+      const callback = callbackFactory(context, this.db, observer, params);
       this.db.query(params, callback);
     });
   }
@@ -121,18 +116,14 @@ const extractSubMeta = sub => ({
 });
 
 const logPub = (context, pub) =>
-  logger.debug({
-    requestId: context.context.requestId,
-    frequency: context.frequency,
+  context.logger.debug({
     source: 'subscriptionDb',
     pubId: pub.publicationId,
     subscribedUsersCount: pub.users.length
   });
 
 const logDone = context =>
-  logger.debug({
-    requestId: context.context.requestId,
-    frequency: context.frequency,
+  context.logger.debug({
     source: 'subscriptionDb',
     msg: 'Finished fetching subscriptions'
   });
