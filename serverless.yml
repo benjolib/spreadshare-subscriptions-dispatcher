@@ -7,7 +7,8 @@ service: subscriptions-dispatcher
 plugins:
   - serverless-webpack
   - serverless-dynamodb-local
-  - serverless-offline-scheduler
+  - serverless-step-functions
+  - serverless-pseudo-parameters
   - serverless-offline
 
 # serverless-webpack configuration
@@ -15,7 +16,10 @@ plugins:
 custom:
   webpack:
     webpackConfig: ./webpack.config.js
-    includeModules: true
+    includeModules: 
+      forceInclude:
+        - mysql
+
   serverless-offline:
     babelOptions:
       presets: ["env", "flow"]
@@ -34,17 +38,18 @@ custom:
   # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html
   schedule:
     dev:
-      daily: rate(1 minutes)
-      weekly: cron(0 9 * * SAT *)
-      monthly: cron(0 9 1 * ? *)  
+      daily: rate(1 minute)
+      # daily: cron(0/1 * ? * * *)
+      weekly: cron(0 9 ? * SAT *)
+      monthly: cron(0 9 1 * ? *)
     stage:
-      daily: cron(0 9 * * ? *)
-      weekly: cron(0 9 * * SAT *)
-      monthly: cron(0 9 1 * ? *)  
+      daily: cron(0/1 * ? * * *)
+      weekly: cron(0 9 ? * SAT *)
+      monthly: cron(0 9 1 * ? *) 
     prod:
-      daily: cron(0 9 * * ? *)
-      weekly: cron(0 9 * * SAT *)
-      monthly: cron(0 9 1 * ? *)   
+      daily: cron(0 9 ? * * *)
+      weekly: cron(0 9 ? * SAT *)
+      monthly: cron(0 9 1 * ? *)
 
 provider:
   name: aws
@@ -59,22 +64,16 @@ provider:
     - Effect: Allow
       Action:
         - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TABLE_NAME}"
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TABLE_NAME}/index/*"
     - Effect: Allow
       Action:
-        - dynamodb:Query
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TABLE_NAME}/index/*"
+        - lambda:InvokeFunction
+      Resource: "arn:aws:lambda:${self:provider.region}:*:function:email-dispatcher-${self:provider.stage}-subscriptionDigest"
 
 functions:
-  emailDispatcher:
-    handler: src/handlers/emailDispatcher.handler
-    name: ${self:provider.stage}-emailDispatcher
-    description: Dispatch emails to subscribed users for publications.
+  digest-aggregator:
+    handler: src/handlers/digestAggregator.handler
+    description: Spreadshare subscriptions digest aggregator.
     events:
       - schedule:
           rate: ${self:custom.schedule.${self:provider.stage}.daily}
@@ -94,6 +93,41 @@ functions:
           name: monthlyEmailNotifications
           input:
             type: monthly
+
+# stepFunctions:
+#   stateMachines:
+#     subscriptionDigestDispatcher:
+#       name: subscriptions-digest-dispatcher-${self:provider.stage}
+#       events:
+#         - schedule:
+#             rate: ${self:custom.schedule.${self:provider.stage}.daily}
+#             enabled: true
+#             name: dailyEmailNotifications
+#             description: Daily digest schedule
+#             input:
+#               type: daily
+#         - schedule:
+#             rate: ${self:custom.schedule.${self:provider.stage}.weekly}
+#             enabled: true
+#             name: weeklyEmailNotifications
+#             description: Weekly digest schedule
+#             input:
+#               type: weekly
+#         - schedule:
+#             rate: ${self:custom.schedule.${self:provider.stage}.monthly}
+#             enabled: true
+#             name: monthlyEmailNotifications
+#             description: Monthly digest schedule
+#             input:
+#               type: monthly
+#       definition:
+#         Comment: "Spreadshare subscriptions digest dispatcher"
+#         StartAt: DigestAggregator
+#         States:
+#           DigestAggregator: 
+#             Type: Task
+#             Resource: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:subscriptions-dispatcher-${self:provider.stage}-digest-aggregator
+#             End: true
 
 package:
   individually: true

@@ -3,7 +3,6 @@
 import R from 'ramda';
 import { bindCallback, from } from 'rxjs';
 import { flatMap, filter } from 'rxjs/operators';
-import logger from './logger';
 import type {
   ControllerI,
   SubscriptionDbI,
@@ -59,18 +58,20 @@ const invokeEmailDispatcher = (context, lambda: Lambda) =>
   flatMap(digest => {
     const lambdaObservable = bindCallback(lambda.invoke);
     logDigest(context, digest);
+    const payload = {
+      context: {
+        requestId: context.requestId
+      },
+      body: digest
+    };
     return lambdaObservable({
       ...lambda.params(),
-      Payload: {
-        body: JSON.stringify(digest, null, 2)
-      }
+      Payload: JSON.stringify(payload, null, 2)
     });
   });
 
 const logDigest = (context, digest: PublicationDigestInfo) =>
-  logger.info({
-    requestId: context.requestId,
-    frequency: digest.digest.frequency,
+  context.logger.info({
     source: 'controller',
     emails: digest.emails,
     publicationId: digest.digest.publication.id,

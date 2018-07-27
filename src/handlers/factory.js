@@ -5,20 +5,30 @@ import Controller from '../controller';
 import SubscriptionTable from '../db/subscriptionDb';
 import PublicationDb from '../db/publicationDb';
 
+const tableName = process.env.TABLE_NAME || 'spreadshare-subscriptions-dev';
+const mySqlHost = process.env.MYSQL_HOST || '127.0.0.1';
+const mySqlPort = process.env.MYSQL_PORT || 3307;
+const mySqlDb = process.env.MYSQL_DB || 'spreadshare';
+const mySqlUsername = process.env.MYSQL_USERNAME || 'spreadshare';
+const mySqlPassword = process.env.MYSQL_PASSWORD || 'spreadshare';
+const emailDispatcherFunction =
+  process.env.EMAIL_DISPATCHER_FUNCTION ||
+  'email-dispatcher-dev-subscriptionDigest';
+
 let dynamoDbOptions = {};
 const mySqlOptions = {
-  host: '127.0.0.1',
-  port: 3307,
-  user: 'spreadshare',
-  password: 'spreadshare',
-  database: 'spreadshare'
+  host: mySqlHost,
+  port: mySqlPort,
+  user: mySqlUsername,
+  password: mySqlPassword,
+  database: mySqlDb
 };
 
 const lambda = new AWS.Lambda();
 
 const lambdaWrapper = {
   params: () => ({
-    FunctionName: 'email-dispatcher-stage-subscriptionDigest',
+    FunctionName: emailDispatcherFunction,
     InvocationType: 'Event'
   }),
   invoke: (params, callback) => {
@@ -26,22 +36,21 @@ const lambdaWrapper = {
   }
 };
 
-// connect to local DB if running offline
-if (process.env.IS_OFFLINE) {
+// connect to local DB and fake lambda if running offline
+if (process.env.IS_OFFLINE || process.env.STEP_IS_OFFLINE) {
   dynamoDbOptions = {
     region: 'localhost',
     endpoint: 'http://localhost:8000'
   };
 
   lambdaWrapper.invoke = (params, callback) => {
-    console.log('mailSent for');
+    console.log('mailSent with: ');
+    console.log(params);
     callback(null, {
       Payload: 'fake payload'
     });
   };
 }
-
-const tableName = process.env.TABLE_NAME || 'spreadshare-subscriptions-dev';
 
 const dynamoClient = new AWS.DynamoDB.DocumentClient(dynamoDbOptions);
 const dynamoDb = new SubscriptionTable(tableName, dynamoClient);
