@@ -61,6 +61,10 @@ provider:
       Action:
         - dynamodb:Query
       Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TABLE_NAME}/index/*"
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+      Resource: "arn:aws:lambda:${self:provider.region}:*:function:email-dispatcher-${self:provider.stage}-subscriptionDigest"
 
 functions:
   emailDispatcher:
