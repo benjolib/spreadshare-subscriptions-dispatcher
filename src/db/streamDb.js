@@ -54,10 +54,9 @@ export default class StreamDb implements StreamDbI {
         .from('tableRows')
         .innerJoin('tables', 'tableRows.tableId', 'tables.id')
         .leftJoin('user', 'tableRows.userId', 'user.id')
-        // .where('tableRows.tableId', streamId)
-        .where('tableRows.tableId', '33')
-        // .andWhere('tableRows.createdAt', '>=', fromTime)
-        .andWhere('tableRows.createdAt', '=', 1512414995)
+        .where('tableRows.tableId', streamId)
+        .andWhere('tableRows.createdAt', '>=', fromTime)
+        // .andWhere('tableRows.createdAt', '=', 1512414995)
         .then(parseData(context, streamId, timeWindow))
     );
   }
