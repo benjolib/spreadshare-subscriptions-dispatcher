@@ -3,7 +3,8 @@
 import AWS from 'aws-sdk';
 import Controller from '../controller';
 import SubscriptionTable from '../db/subscriptionDb';
-import PublicationDb from '../db/publicationDb';
+import StreamDb from '../db/streamDb';
+import DataSanitizer from '../dataSanitizer';
 
 const tableName = process.env.TABLE_NAME || 'spreadshare-subscriptions-dev';
 const mySqlHost = process.env.MYSQL_HOST || '127.0.0.1';
@@ -14,6 +15,7 @@ const mySqlPassword = process.env.MYSQL_PASSWORD || 'spreadshare';
 const emailDispatcherFunction =
   process.env.EMAIL_DISPATCHER_FUNCTION ||
   'email-dispatcher-dev-subscriptionDigest';
+const baseUrl = process.env.BASE_URL || 'https://staging.spreadshare.co';
 
 let dynamoDbOptions = {};
 const mySqlOptions = {
@@ -54,7 +56,8 @@ if (process.env.IS_OFFLINE || process.env.STEP_IS_OFFLINE) {
 
 const dynamoClient = new AWS.DynamoDB.DocumentClient(dynamoDbOptions);
 const dynamoDb = new SubscriptionTable(tableName, dynamoClient);
+const sanitizer = new DataSanitizer(baseUrl);
 
-const publicationDb = new PublicationDb(mySqlOptions);
+const streamDb = new StreamDb(mySqlOptions);
 
-export default new Controller(dynamoDb, publicationDb, lambdaWrapper);
+export default new Controller(dynamoDb, streamDb, sanitizer, lambdaWrapper);

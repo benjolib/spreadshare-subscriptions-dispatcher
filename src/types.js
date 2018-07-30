@@ -9,19 +9,32 @@ export interface ControllerI {
 }
 
 export interface SubscriptionDbI {
-  usersGroupedByPub(
+  usersGroupedByStream(
     context: Context,
     channel: Channel,
     frequency: Frequency
-  ): Observable<PublicationSubscriptions>;
+  ): Observable<StreamSubscriptions>;
 }
 
-export interface PublicationDbI {
+export interface StreamDbI {
   fetchDigest(
     context: Context,
-    publicationId: string,
+    streamId: string,
     timeWindow: Frequency
-  ): Promise<?Publication>;
+  ): Promise<?Stream>;
+}
+
+export interface DataSanitizerI {
+  sanitize(context: Context, stream: Stream): ?Stream;
+}
+
+export interface SummarizerI {
+  collectDigestSummary(content: StreamDigest): void;
+  collectValidDigestSummary(content: StreamDigest): void;
+  collectDispatchSummary(content: {
+    stream: StreamDigest,
+    res: Array<mixed>
+  }): void;
 }
 
 export interface LoggerI {
@@ -36,40 +49,41 @@ export type Context = {
   logger: LoggerI
 };
 
-export type PublicationDigestInfo = {
+export type StreamDigest = {
   emails: Array<string>,
-  digest: PublicationDigest
+  digest: Stream
 };
 
-export type PublicationDigest = {
-  frequency: Frequency,
-  publication: Publication
-};
-
-export type Publication = {
-  +title: string,
-  +tagline: string,
+export type Stream = {
+  +frequency: Frequency,
+  +name: string,
+  +link: string,
   +id: string,
-  +posts: Array<Post>
+  +digest: Array<Post>
 };
 
 type Post = {
-  content: Array<any>,
+  columns: Array<Column>,
   votesCount: number,
   commentsCount: number,
-  imageLink: string,
-  contributorInfo: ContributorInfo
+  imageLink?: string,
+  contributor: Person
 };
 
-type ContributorInfo = {
+export type Column = {
+  text: string,
+  link?: string
+};
+
+type Person = {
   name: string,
-  imageLink: string
+  imageLink?: string
 };
 
 export type Subscription = {
   +userId: string,
   +email: string,
-  +publicationId: string,
+  +streamId: string,
   +frequency: Frequency
 };
 
@@ -78,12 +92,12 @@ type UserInfo = {
   +email: string
 };
 
-export type PublicationSubscriptions = {
-  +publicationId: string,
+export type StreamSubscriptions = {
+  +streamId: string,
   +users: Array<UserInfo>
 };
 
-export type PublicationDbOptions = {
+export type StreamDbOptions = {
   host: string,
   user: string,
   password: string,

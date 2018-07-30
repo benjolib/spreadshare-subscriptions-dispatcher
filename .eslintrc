@@ -14,9 +14,12 @@
     "comma-dangle": "off",
     "generator-star-spacing": "off",
     "import/prefer-default-export": "off",
-    "import/no-unresolved": [2, {
-      "caseSensitive": false
-    }],
+    "import/no-unresolved": [
+      2,
+      {
+        "caseSensitive": false
+      }
+    ],
     "import/no-extraneous-dependencies": "off",
     "no-console": 0,
     "no-use-before-define": "off",
@@ -26,6 +29,7 @@
     "promise/always-return": 2,
     "promise/catch-or-return": 2,
     "promise/no-native": 0,
+    "no-confusing-arrow": 0,
     "function-paren-newline": 0,
     "flowtype-errors/show-errors": "error",
     "flowtype/define-flow-type": 1,
@@ -41,6 +45,7 @@
     "import",
     "promise",
     "compat",
-    "jest"
+    "jest",
+    "ramda"
   ]
 }

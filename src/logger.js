@@ -56,3 +56,9 @@ export default class Logger implements LoggerI {
     });
   }
 }
+
+export const errorTypes = {
+  unhandledError: 'UnhandledError',
+  contentParseError: 'ContentParseError',
+  emailDispatchError: 'EmailDispatchError'
+};

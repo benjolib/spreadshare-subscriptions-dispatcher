@@ -11,7 +11,7 @@ import type {
   SubscriptionDbI,
   Frequency,
   Channel,
-  PublicationSubscriptions,
+  StreamSubscriptions,
   Context
 } from '../types';
 
@@ -25,11 +25,11 @@ export default class SubscriptionDb implements SubscriptionDbI {
     this.db = dynamoDb;
   }
 
-  usersGroupedByPub(
+  usersGroupedByStream(
     context: Context,
     channel: Channel,
     frequency: Frequency
-  ): Observable<PublicationSubscriptions> {
+  ): Observable<StreamSubscriptions> {
     return Observable.create(observer => {
       const params = queryParams(this.tableName, channel, frequency);
       const callback = callbackFactory(context, this.db, observer, params);
@@ -44,8 +44,8 @@ const queryParams = (
   frequency: Frequency
 ) => ({
   TableName: tableName,
-  IndexName: 'channel-frequency-publication-index',
-  ProjectionExpression: 'userId, email, publicationId',
+  IndexName: 'channel-frequency-stream-index',
+  ProjectionExpression: 'userId, email, streamId',
   KeyConditionExpression: 'channelFrequency = :channelFrequency',
   ExpressionAttributeValues: {
     ':channelFrequency': `${channel}:${frequency}`
@@ -59,8 +59,8 @@ const callbackFactory = (
   observer,
   params
 ): DynamoDbQueryCallback<SubscriptionDbModel> => {
-  let currentPub = {
-    publicationId: '',
+  let currentStream = {
+    streamId: '',
     users: []
   };
 
@@ -71,24 +71,24 @@ const callbackFactory = (
     }
 
     data.Items.map(extractSubMeta).forEach(sub => {
-      if (sub.publicationId === currentPub.publicationId) {
-        currentPub.users.push(sub.userInfo);
+      if (sub.streamId === currentStream.streamId) {
+        currentStream.users.push(sub.userInfo);
       } else {
-        if (!R.isEmpty(currentPub.publicationId)) {
-          logPub(context, currentPub);
-          observer.next(currentPub);
+        if (!R.isEmpty(currentStream.streamId)) {
+          logStream(context, currentStream);
+          observer.next(currentStream);
         }
-        currentPub = {
-          publicationId: sub.publicationId,
+        currentStream = {
+          streamId: sub.streamId,
           users: [sub.userInfo]
         };
       }
     });
 
     if (R.isNil(data.LastEvaluatedKey)) {
-      if (!R.isEmpty(currentPub.publicationId)) {
-        logPub(context, currentPub);
-        observer.next(currentPub);
+      if (!R.isEmpty(currentStream.streamId)) {
+        logStream(context, currentStream);
+        observer.next(currentStream);
       }
       logDone(context);
       observer.complete();
@@ -108,18 +108,18 @@ const callbackFactory = (
 };
 
 const extractSubMeta = sub => ({
-  publicationId: sub.publicationId,
+  streamId: sub.streamId,
   userInfo: {
     userId: sub.userId,
     email: sub.email
   }
 });
 
-const logPub = (context, pub) =>
+const logStream = (context, stream) =>
   context.logger.debug({
     source: 'subscriptionDb',
-    pubId: pub.publicationId,
-    subscribedUsersCount: pub.users.length
+    streamId: stream.streamId,
+    subscribedUsersCount: stream.users.length
   });
 
 const logDone = context =>

@@ -24,7 +24,7 @@ export type Frequency = 'daily' | 'weekly' | 'monthly';
 export type SubscriptionDbModel = {
   +userId: string,
   +email: string,
-  +publicationId: string,
+  +streamId: string,
   +frequency: Frequency,
   +channel: Channel,
   +createdAt?: number,

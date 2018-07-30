@@ -5,7 +5,7 @@ key:
 data:
   count: 5000
   dependencies:
-    - publications.yml
+    - streams.yml
     - users.yml
 properties:
   userId:
@@ -16,10 +16,10 @@ properties:
     description: The users email address
     data:
       fake: '{{internet.email}}'
-  publicationId:
+  streamId:
     type: string
     data:
-      build: faker.random.arrayElement(documents.Publications).id;
+      build: faker.random.arrayElement(documents.Streams).id;
   frequency:
     type: string
     data:
@@ -31,7 +31,7 @@ properties:
   channelId:
     type: string
     data:
-      build: `${faker.random.arrayElement(documents.Publications).id}:${this.channel}`;
+      build: `${faker.random.arrayElement(documents.Streams).id}:${this.channel}`;
   channelFrequency:
     type: string
     data:

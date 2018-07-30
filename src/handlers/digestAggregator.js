@@ -2,7 +2,7 @@
 
 import to from 'await-to-js';
 import controller from './factory';
-import Logger from '../logger';
+import Logger, { errorTypes } from '../logger';
 import type { Handler } from '../types';
 
 export const handler: Handler = async (event, awsContext) => {
@@ -38,7 +38,7 @@ const logExit = logger =>
 const logError = (logger, err: Error) =>
   logger.error({
     source: 'emailDispatcher',
-    type: 'error',
+    type: errorTypes.unhandledError,
     msg: err.message,
     stack: err.stack
   });

@@ -7,8 +7,7 @@ service: subscriptions-dispatcher
 plugins:
   - serverless-webpack
   - serverless-dynamodb-local
-  - serverless-step-functions
-  - serverless-pseudo-parameters
+  - serverless-offline-scheduler
   - serverless-offline
 
 # serverless-webpack configuration
@@ -60,6 +59,13 @@ provider:
   memorySize: 512
   versionFunctions: false
   environment: ${file(env.yml):${self:provider.stage}}
+  vpc:
+    securityGroupIds:
+      - sg-44cb5f29
+    subnetIds:
+      - subnet-f2efe099
+      - subnet-1a0e4b67
+      - subnet-190a4254
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -77,57 +83,22 @@ functions:
     events:
       - schedule:
           rate: ${self:custom.schedule.${self:provider.stage}.daily}
-          enabled: true
+          enabled: false
           name: dailyEmailNotifications
           input:
             type: daily
       - schedule:
           rate: ${self:custom.schedule.${self:provider.stage}.weekly}
-          enabled: true
+          enabled: false
           name: weeklyEmailNotifications
           input:
             type: weekly
       - schedule:
           rate: ${self:custom.schedule.${self:provider.stage}.monthly}
-          enabled: true
+          enabled: false
           name: monthlyEmailNotifications
           input:
             type: monthly
-
-# stepFunctions:
-#   stateMachines:
-#     subscriptionDigestDispatcher:
-#       name: subscriptions-digest-dispatcher-${self:provider.stage}
-#       events:
-#         - schedule:
-#             rate: ${self:custom.schedule.${self:provider.stage}.daily}
-#             enabled: true
-#             name: dailyEmailNotifications
-#             description: Daily digest schedule
-#             input:
-#               type: daily
-#         - schedule:
-#             rate: ${self:custom.schedule.${self:provider.stage}.weekly}
-#             enabled: true
-#             name: weeklyEmailNotifications
-#             description: Weekly digest schedule
-#             input:
-#               type: weekly
-#         - schedule:
-#             rate: ${self:custom.schedule.${self:provider.stage}.monthly}
-#             enabled: true
-#             name: monthlyEmailNotifications
-#             description: Monthly digest schedule
-#             input:
-#               type: monthly
-#       definition:
-#         Comment: "Spreadshare subscriptions digest dispatcher"
-#         StartAt: DigestAggregator
-#         States:
-#           DigestAggregator: 
-#             Type: Task
-#             Resource: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:subscriptions-dispatcher-${self:provider.stage}-digest-aggregator
-#             End: true
 
 package:
   individually: true
@@ -150,7 +121,7 @@ resources:
             AttributeType: S
           - AttributeName: channelId
             AttributeType: S
-          - AttributeName: publicationId
+          - AttributeName: streamId
             AttributeType: S
           - AttributeName: channelFrequency
             AttributeType: S
@@ -160,11 +131,11 @@ resources:
           - AttributeName: channelId
             KeyType: RANGE
         GlobalSecondaryIndexes: 
-          - IndexName: channel-frequency-publication-index
+          - IndexName: channel-frequency-stream-index
             KeySchema:
               - AttributeName: channelFrequency
                 KeyType: HASH
-              - AttributeName: publicationId
+              - AttributeName: streamId
                 KeyType: RANGE
             Projection: 
               ProjectionType: ALL
