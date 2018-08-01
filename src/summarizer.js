@@ -31,7 +31,7 @@ export default class Summarizer implements SummarizerI {
 
   collectDigestSummary(content: StreamDigest): void {
     const { digest } = content;
-    if (digest) {
+    if (digest && digest.digest) {
       this.summary.frequency = content.digest.frequency;
       let currentEntry = this.summary.details[digest.id];
       if (!currentEntry) {

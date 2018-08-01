@@ -62,7 +62,9 @@ export default class Controller implements ControllerI {
             return of();
           })
         )
-        .pipe(tap(content => summarizer.collectDispatchSummary(content)))
+        .pipe(
+          tap(content => collectSummaryAndlog(context, summarizer, content))
+        )
         .toPromise()
         .then(logFinalSummary(context, summarizer))
     );
@@ -118,6 +120,22 @@ const logDispatchError = (context, err: Error) => {
     msg: err.message,
     stack: err.stack
   });
+};
+
+const collectSummaryAndlog = (context, summarizer, response) => {
+  summarizer.collectDispatchSummary(response);
+  const { res, stream } = response;
+  if (res[0]) {
+    context.logger.warn({
+      source: 'controller',
+      emails: stream.emails,
+      streamId: stream.digest.id,
+      streamName: stream.digest.name,
+      type: errorTypes.emailDispatchError,
+      msg: res[0].message,
+      stack: res[0].stack
+    });
+  }
 };
 
 const logFinalSummary = (context, summarizer) => () => {

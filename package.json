@@ -19,6 +19,7 @@
     "dev": "sls offline start | pino-pretty -c",
     "deploy:stage": "sls deploy -s stage",
     "deploy:prod": "sls deploy -s prod",
+    "deploy:func:prod": "sls deploy -s prod -f digest-aggregator",
     "fakeData": "fakeit console testSeedData/subscriptions.yml > ./testSeedData/subscriptions.json && node ./testSeedData/removeDuplicates.js",
     "invoke:local": "serverless invoke local --function",
     "lint": "eslint --cache --format=node_modules/eslint-formatter-pretty .",

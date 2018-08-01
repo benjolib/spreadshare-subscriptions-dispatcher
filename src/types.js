@@ -77,6 +77,7 @@ export type Column = {
 
 type Person = {
   name: string,
+  fullName: string,
   imageLink?: string
 };
 

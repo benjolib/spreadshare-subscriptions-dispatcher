@@ -42,10 +42,11 @@ custom:
       weekly: cron(0 9 ? * SAT *)
       monthly: cron(0 9 1 * ? *)
     stage:
-      daily: cron(0/1 * ? * * *)
+      daily: cron(0 9 ? * * *)
       weekly: cron(0 9 ? * SAT *)
       monthly: cron(0 9 1 * ? *) 
     prod:
+      # daily: cron(0/1 * ? * * *)
       daily: cron(0 9 ? * * *)
       weekly: cron(0 9 ? * SAT *)
       monthly: cron(0 9 1 * ? *)
@@ -74,7 +75,7 @@ provider:
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
-      Resource: "arn:aws:lambda:${self:provider.region}:*:function:email-dispatcher-${self:provider.stage}-subscriptionDigest"
+      Resource: "arn:aws:lambda:${self:provider.region}:*:function:email-dispatcher-${self:provider.stage}-digest"
 
 functions:
   digest-aggregator:
@@ -83,7 +84,7 @@ functions:
     events:
       - schedule:
           rate: ${self:custom.schedule.${self:provider.stage}.daily}
-          enabled: false
+          enabled: true
           name: dailyEmailNotifications
           input:
             type: daily
