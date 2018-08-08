@@ -15,7 +15,7 @@ plugins:
 custom:
   webpack:
     webpackConfig: ./webpack.config.js
-    includeModules: 
+    includeModules:
       forceInclude:
         - mysql
 
@@ -42,12 +42,11 @@ custom:
       weekly: cron(0 9 ? * SAT *)
       monthly: cron(0 9 1 * ? *)
     stage:
-      daily: cron(0 9 ? * * *)
+      daily: cron(0 0 ? * * *)
       weekly: cron(0 9 ? * SAT *)
-      monthly: cron(0 9 1 * ? *) 
+      monthly: cron(0 9 1 * ? *)
     prod:
-      # daily: cron(0/1 * ? * * *)
-      daily: cron(0 9 ? * * *)
+      daily: cron(0 0 ? * * *)
       weekly: cron(0 9 ? * SAT *)
       monthly: cron(0 9 1 * ? *)
 
@@ -60,6 +59,9 @@ provider:
   memorySize: 512
   versionFunctions: false
   environment: ${file(env.yml):${self:provider.stage}}
+  tags:
+    service: subscription-dispatcher
+    category: subscription
   vpc:
     securityGroupIds:
       - sg-44cb5f29
@@ -85,19 +87,19 @@ functions:
       - schedule:
           rate: ${self:custom.schedule.${self:provider.stage}.daily}
           enabled: true
-          name: dailyEmailNotifications
+          name: ${self:provider.stage}-dailyEmailNotifications
           input:
             type: daily
       - schedule:
           rate: ${self:custom.schedule.${self:provider.stage}.weekly}
-          enabled: false
-          name: weeklyEmailNotifications
+          enabled: true
+          name: ${self:provider.stage}-weeklyEmailNotifications
           input:
             type: weekly
       - schedule:
           rate: ${self:custom.schedule.${self:provider.stage}.monthly}
-          enabled: false
-          name: monthlyEmailNotifications
+          enabled: true
+          name: ${self:provider.stage}-monthlyEmailNotifications
           input:
             type: monthly
 
@@ -131,14 +133,14 @@ resources:
             KeyType: HASH
           - AttributeName: channelId
             KeyType: RANGE
-        GlobalSecondaryIndexes: 
+        GlobalSecondaryIndexes:
           - IndexName: channel-frequency-stream-index
             KeySchema:
               - AttributeName: channelFrequency
                 KeyType: HASH
               - AttributeName: streamId
                 KeyType: RANGE
-            Projection: 
+            Projection:
               ProjectionType: ALL
             ProvisionedThroughput:
               ReadCapacityUnits: 1
